@@ -412,13 +412,20 @@ def contamination(nominal, anomaly, p):
     """
     # Build explicit mixture model
     return tfd.JointDistributionSequential(
+        # join an array of distributions
         [
-            tfd.Bernoulli(probs=p, dtype=tf.double),
+            # binary distribution, only 0 or 1
+            tfd.Bernoulli(probs=p, dtype=tf.double),   # distribution package of TensorFlow
+            # real data distribution
             nominal,
+            # anomaly data distribution
             anomaly,
-            lambda a, n, b: tfd.Deterministic(
-                (tf.reshape(b, (-1, 1)) * tf.cast(a[-1], tf.double))
-                + (tf.reshape((1 - b), (-1, 1)) * tf.cast(n[-1], tf.double))
+            # the lambda function is sampled with the first 3 distributions (last dist is first param...)
+            # principally calculates (b * a) + ((1 - b) * n)  but with reshaping
+            # reshape(-1, 1) means, infer size and use as column vector
+            lambda a, n, b: tfd.Deterministic(   # step function
+                (tf.reshape(b, (-1, 1)) * tf.cast(a[-1], tf.double)) # add anomaly if b=1
+                + (tf.reshape((1 - b), (-1, 1)) * tf.cast(n[-1], tf.double))  # nominal if b=0
             ),
         ]
     )
@@ -441,12 +448,13 @@ def get_house_prices_data(neighborhood="CollgCr", anomaly_neighborhood="NoRidge"
         columns=["Neighborhood"]
     )
     X_train, X_test = train_test_split(neighborhood_data, test_size=0.2)
+    
     X_anomalies = house_data[house_data["Neighborhood"] == anomaly_neighborhood].drop(
         columns=["Neighborhood"]
     )
-    y_test = [0] * len(X_test) + [1] * len(X_anomalies)
-    X_test = X_test._append(X_anomalies, ignore_index=True)
-    X_test, y_test = shuffle(X_test, y_test)
+    y_test = [0] * len(X_test) + [1] * len(X_anomalies)      # create 0/1 vector as indicator
+    X_test = X_test._append(X_anomalies, ignore_index=True)  # mix real data with anomalies
+    X_test, y_test = shuffle(X_test, y_test)                 # shuffle the data
     return X_train.reset_index(drop=True), X_test.reset_index(drop=True), y_test
 
 
@@ -655,7 +663,7 @@ def perform_rkde_experiment(
     X0, y0 = load_contaminated_data(dataset, dataset_options)
     total_scores = pd.DataFrame()
 
-    # Plot data is possiblr
+    # Plot data is possible
     if dataset == "banana":
         plt.scatter(X0[:, 0], X0[:, 1], c=y0)
         plt.show()
