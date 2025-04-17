@@ -138,11 +138,11 @@ def build_contaminated_minst(data, contamination=.03, p_noise=.1):
     data = data.copy()
     n = len(data)
     n_cont = int(contamination * n)
-    selection = np.random.choice(n, n_cont)
+    selection = np.random.choice(n, n_cont) # create a random vector within the length
 
     # Transposed images
     transpose = int(n_cont / 3)
-    selection_trans = selection[:transpose]
+    selection_trans = selection[:transpose]  # take 1/3 from the random indexes for transposing
     data[selection_trans] = np.transpose(data[selection_trans], axes=[0, 2, 1, 3])
 
     # Blacked out image parts
